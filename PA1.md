@@ -1,0 +1,115 @@
+---
+title: "Programming Assessment 1 - Reproducible Research"
+output: 
+  html_document: 
+    fig_caption: yes
+    keep_md: yes
+
+---
+
+
+
+
+
+## Loading and preprocessing the data
+
+
+
+```r
+act <- read.csv("C:\\Users\\Mark\\Downloads\\repdata_data_activity\\activity.csv")
+
+library(dplyr)
+
+a <- filter(act,!is.na(steps))
+b <- group_by(a,date)
+c <- summarise(b,totalsteps = sum(steps))
+c <- as.data.frame(c)
+c$date <- as.Date(c$date)
+```
+
+## Histogram of the total number of steps taken each day
+
+
+
+```r
+library(ggplot2)
+
+ggplot(c,aes(x=totalsteps)) + geom_histogram(col="black",fill="blue",alpha=0.2) + labs(title="Histogram for total days for step ranges", x="Steps", y="Days")
+```
+
+![](Figs/histogram_1-1.png)<!-- -->
+
+## Mean and median number of steps taken each day
+
+
+
+```r
+mean_median <- summarise(c,mean = mean(totalsteps),median = median(totalsteps))
+print(mean_median)
+```
+
+```
+##       mean median
+## 1 10766.19  10765
+```
+
+## Time series plot of the average number of steps taken
+
+
+
+```r
+d <- group_by(a,interval)
+e <- summarise(d,averagesteps = mean(steps))
+with(plot(interval,averagesteps,type="l",main="Avg Steps per interval",ylab="Average steps"),data=e)
+```
+
+![](Figs/time_series_1-1.png)<!-- -->
+
+## The 5-minute interval that, on average, contains the maximum number of steps
+
+
+```r
+print(as.integer(e[which.max(e$averagesteps),1]))
+```
+
+```
+## [1] 835
+```
+
+## Code to describe and show a strategy for imputing missing data
+
+
+```r
+act_2 <- inner_join(act,e,by="interval")
+act_2$steps[is.na(act_2$steps)] <- act_2$averagesteps
+```
+
+## Histogram of the total number of steps taken each day after missing values are imputed
+
+
+```r
+f <- group_by(act_2,date)
+g <- summarise(f,totalsteps = sum(steps))
+g <- as.data.frame(g)
+g$date <- as.Date(g$date)
+
+ggplot(g,aes(x=totalsteps)) + geom_histogram(col="black",fill="blue",alpha=0.2) + labs(title="Histogram for total days for step ranges accounting for NAs", x="Steps", y="Days")
+```
+
+![](Figs/histogram_2-1.png)<!-- -->
+
+## Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+
+
+```r
+act_2$date <- as.Date(act_2$date)
+act_2 <- mutate(act_2,weekday = ifelse(weekdays(act_2$date) == "Sunday" | weekdays(act_2$date) == "Saturday","weekend","weekday"))
+
+h <- group_by(act_2,interval,weekday)
+i <- summarise(h,newaveragesteps = mean(steps))
+
+library(lattice)
+xyplot(newaveragesteps ~ interval | weekday,i,type='l',main="Average Steps per Interval",ylab="Average steps")
+```
+
+![](Figs/panel_1-1.png)<!-- -->
